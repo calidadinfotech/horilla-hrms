@@ -12,6 +12,8 @@ RUN pip install --no-cache-dir --prefix=/install -r requirements.txt
 FROM python:3.10-slim-bullseye AS runtime
 
 ENV PYTHONUNBUFFERED=1
+ENV PYTHONPATH=/app
+ENV DJANGO_SETTINGS_MODULE=horilla.settings
 
 WORKDIR /app/
 
