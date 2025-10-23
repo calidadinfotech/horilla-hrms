@@ -9,7 +9,6 @@ services:
     env_file:
       - .env
     environment:
-      - DATABASE_URL=postgresql://admin:Testing1234*@db:5432/horilla
       - PYTHONPATH=/app
       - DJANGO_SETTINGS_MODULE=horilla.settings
     volumes:
