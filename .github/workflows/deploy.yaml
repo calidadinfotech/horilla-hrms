@@ -1,0 +1,43 @@
+name: Deploy to Server
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set up SSH key
+        uses: webfactory/ssh-agent@v0.8.0
+        with:
+          ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
+
+      - name: Create .env file
+        run: |
+          cat <<EOF > .env
+          SECRET_KEY=${{ secrets.SECRET_KEY }}
+          DEBUG=${{ vars.DEBUG }}
+          ALLOWED_HOSTS=${{ vars.ALLOWED_HOSTS }}
+          CSRF_TRUSTED_ORIGINS=${{ vars.CSRF_TRUSTED_ORIGINS }}
+          TIME_ZONE=${{ vars.TIME_ZONE }}
+          DB_INIT_PASSWORD=${{ secrets.DB_INIT_PASSWORD }}
+          DB_ENGINE=${{ vars.DB_ENGINE }}
+          DB_NAME=${{ vars.DB_NAME }}
+          DB_USER=${{ vars.DB_USER }}
+          DB_PASSWORD=${{ secrets.DB_PASSWORD }}
+          DB_HOST=${{ vars.DB_HOST }}
+          DB_PORT=${{ vars.DB_PORT }}
+          EOF
+
+      - name: Copy files to server
+        run: |
+          rsync -avz --exclude='.git' --exclude='.github' -e "ssh -o StrictHostKeyChecking=no" . ${{ vars.SSH_USER }}@${{ vars.SERVER_IP }}:/srv/${{ vars.APP_NAME }}
+
+      - name: Deploy with docker-compose
+        run: |
+          ssh -o StrictHostKeyChecking=no ${{ vars.SSH_USER }}@${{ vars.SERVER_IP }} "cd /srv/${{ vars.APP_NAME }} && docker-compose up -d"
