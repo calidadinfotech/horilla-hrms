@@ -13,3 +13,5 @@
 ## Build & Run
 
 - ```docker compose up```
+
+- for testing
