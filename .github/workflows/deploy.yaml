@@ -40,4 +40,4 @@ jobs:
 
       - name: Deploy with docker-compose
         run: |
-          ssh -o StrictHostKeyChecking=no ${{ vars.SSH_USER }}@${{ vars.SERVER_IP }} "cd /srv/${{ vars.APP_NAME }} && docker compose up -d"
+          ssh -o StrictHostKeyChecking=no ${{ vars.SSH_USER }}@${{ vars.SERVER_IP }} "cd /srv/${{ vars.APP_NAME }} && docker compose up --build -d"

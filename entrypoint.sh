@@ -1,4 +1,5 @@
 #!/bin/bash
+set -e
 
 echo "Waiting for database to be ready..."
 
@@ -15,4 +16,4 @@ echo "Running collectstatic..."
 python3 manage.py collectstatic --noinput
 
 echo "Starting Gunicorn server..."
-gunicorn --bind 0.0.0.0:8000 --workers 3 --timeout 120 horilla.wsgi:application
+exec gunicorn --bind 0.0.0.0:8000 --workers 3 --timeout 120 horilla.wsgi:application
