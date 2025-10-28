@@ -26,6 +26,27 @@ def get_filter_form(request):
     """
     This method will return filtering from
     """
-    widget_instance = ALL_INSTANCES[str(request.user.id)]
-    template_path = request.GET["template_path"]
-    return render(request, template_path, {"f": widget_instance.filter_class()})
+    user_id = str(request.user.id)
+    
+    # Check if widget instance exists for this user
+    if user_id not in ALL_INSTANCES:
+        # Widget instance not found - this can happen if the view is called
+        # before the widget has been rendered. Return empty content or error.
+        from django.http import HttpResponse
+        return HttpResponse('<div class="alert alert-warning">Widget not initialized. Please refresh the page.</div>')
+    
+    widget_instance = ALL_INSTANCES[user_id]
+    template_path = request.GET.get("template_path")
+    
+    if not template_path:
+        from django.http import HttpResponse
+        return HttpResponse('<div class="alert alert-error">Template path not provided.</div>')
+    
+    # Initialize the filter class
+    if widget_instance.filter_class:
+        filter_instance = widget_instance.filter_class()
+    else:
+        from django.http import HttpResponse
+        return HttpResponse('<div class="alert alert-error">Filter class not found.</div>')
+    
+    return render(request, template_path, {"f": filter_instance})
