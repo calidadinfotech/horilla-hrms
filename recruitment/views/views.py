@@ -123,6 +123,14 @@ from recruitment.views.linkedin import delete_post, post_recruitment_in_linkedin
 from recruitment.views.paginator_qry import paginator_qry
 
 
+def get_pipeline_cache_data(request):
+    """
+    Utility function to safely retrieve pipeline cache data
+    Returns None if cache data is not available
+    """
+    return CACHE.get(request.session.session_key + "pipeline")
+
+
 def is_stagemanager(request, stage_id=False):
     """
     This method is used to identify the employee is a stage manager or
@@ -532,9 +540,14 @@ def stage_component(request, view: str = "list"):
     """
     recruitment_id = request.GET["rec_id"]
     recruitment = Recruitment.objects.get(id=recruitment_id)
-    ordered_stages = CACHE.get(request.session.session_key + "pipeline")[
-        "stages"
-    ].filter(recruitment_id__id=recruitment_id)
+    
+    # Get cached pipeline data with null check
+    pipeline_data = get_pipeline_cache_data(request)
+    if not pipeline_data:
+        # If cache is empty, redirect to pipeline to rebuild the cache
+        return HttpResponseRedirect(reverse("pipeline"))
+    
+    ordered_stages = pipeline_data["stages"].filter(recruitment_id__id=recruitment_id)
     template = "pipeline/components/stages_tab_content.html"
     if view == "card":
         template = "pipeline/kanban_components/kanban_stage_components.html"
@@ -544,9 +557,7 @@ def stage_component(request, view: str = "list"):
         {
             "rec": recruitment,
             "ordered_stages": ordered_stages,
-            "filter_dict": CACHE.get(request.session.session_key + "pipeline")[
-                "filter_dict"
-            ],
+            "filter_dict": pipeline_data["filter_dict"],
         },
     )
 
@@ -559,16 +570,16 @@ def update_candidate_stage_and_sequence(request):
     """
     order_list = request.GET.getlist("order")
     stage_id = request.GET["stage_id"]
-    stage = (
-        CACHE.get(request.session.session_key + "pipeline")["stages"]
-        .filter(id=stage_id)
-        .first()
-    )
+    
+    # Get cached pipeline data with null check
+    pipeline_data = get_pipeline_cache_data(request)
+    if not pipeline_data:
+        return JsonResponse({"error": "Pipeline data not found in cache"}, status=400)
+    
+    stage = pipeline_data["stages"].filter(id=stage_id).first()
     context = {}
     for index, cand_id in enumerate(order_list):
-        candidate = CACHE.get(request.session.session_key + "pipeline")[
-            "candidates"
-        ].filter(id=cand_id)
+        candidate = pipeline_data["candidates"].filter(id=cand_id)
         candidate.update(sequence=index, stage_id=stage)
     if stage.stage_type == "hired":
         if stage.recruitment_id.is_vacancy_filled():
@@ -585,17 +596,17 @@ def update_candidate_sequence(request):
     """
     order_list = request.GET.getlist("order")
     stage_id = request.GET["stage_id"]
-    stage = (
-        CACHE.get(request.session.session_key + "pipeline")["stages"]
-        .filter(id=stage_id)
-        .first()
-    )
+    
+    # Get cached pipeline data with null check
+    pipeline_data = get_pipeline_cache_data(request)
+    if not pipeline_data:
+        return JsonResponse({"error": "Pipeline data not found in cache"}, status=400)
+    
+    stage = pipeline_data["stages"].filter(id=stage_id).first()
     data = {}
 
     for index, cand_id in enumerate(order_list):
-        candidate = CACHE.get(request.session.session_key + "pipeline")[
-            "candidates"
-        ].filter(id=cand_id)
+        candidate = pipeline_data["candidates"].filter(id=cand_id)
         candidate.update(
             sequence=index, stage_id=stage, hired=(stage.stage_type == "hired")
         )
@@ -620,20 +631,22 @@ def candidate_component(request):
     Candidate component
     """
     stage_id = request.GET.get("stage_id")
+    
+    # Get cached pipeline data with null check
+    pipeline_data = get_pipeline_cache_data(request)
+    if not pipeline_data:
+        # If cache is empty, redirect to pipeline to rebuild the cache
+        return HttpResponseRedirect(reverse("pipeline"))
+    
     stage = (
-        CACHE.get(request.session.session_key + "pipeline")["stages"]
+        pipeline_data["stages"]
         .filter(id=stage_id)
         .first()
     )
-    candidates = CACHE.get(request.session.session_key + "pipeline")[
-        "candidates"
-    ].filter(stage_id=stage)
+    candidates = pipeline_data["candidates"].filter(stage_id=stage)
 
     template = "pipeline/components/candidate_stage_component.html"
-    if (
-        CACHE.get(request.session.session_key + "pipeline")["filter_query"].get("view")
-        == "card"
-    ):
+    if pipeline_data["filter_query"].get("view") == "card":
         template = "pipeline/kanban_components/candidate_kanban_components.html"
 
     now = timezone.now()
