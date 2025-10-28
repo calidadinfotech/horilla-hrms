@@ -1,3 +1,39 @@
+// Load model choices dynamically
+function loadModelChoices() {
+  $.ajax({
+    type: "get",
+    url: "/get-model-choices",
+    success: function (response) {
+      if (response.success && response.choices) {
+        const modelSelect = $("#id_model");
+        if (modelSelect.length > 0) {
+          // Clear existing options except the first one
+          modelSelect.find('option:not(:first)').remove();
+          
+          // Add new choices
+          response.choices.forEach(function(choice) {
+            modelSelect.append(new Option(choice.text, choice.value));
+          });
+          
+          // Trigger change event to refresh any select2 widgets
+          modelSelect.trigger('change');
+        }
+      }
+    },
+    error: function(xhr, status, error) {
+      console.error("Error loading model choices:", error);
+    }
+  });
+}
+
+// Initialize model choices when document is ready
+$(document).ready(function() {
+  // Load model choices when the form is loaded
+  if ($("#id_model").length > 0) {
+    loadModelChoices();
+  }
+});
+
 function getToMail(element) {
   model = element.val();
   $.ajax({

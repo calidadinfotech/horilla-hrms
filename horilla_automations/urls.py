@@ -4,7 +4,7 @@ horilla_automations/urls.py
 
 from django.urls import path
 
-from horilla_automations.views import cbvs, views
+from horilla_automations.views import cbvs, views, ajax_views
 
 urlpatterns = [
     path(
@@ -56,5 +56,10 @@ urlpatterns = [
         "refresh-automations",
         views.refresh_automations,
         name="refresh-automations",
+    ),
+    path(
+        "get-model-choices",
+        ajax_views.get_model_choices,
+        name="get-model-choices",
     ),
 ]

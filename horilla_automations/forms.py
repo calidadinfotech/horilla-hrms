@@ -31,6 +31,70 @@ class AutomationForm(ModelForm):
         model = MailAutomation
         fields = "__all__"
 
+    def _get_model_choices(self):
+        """
+        Get model choices, populating them if they're empty
+        """
+        from django.apps import apps
+        
+        # Try to get the choices from the global variable first
+        if MODEL_CHOICES:
+            return list(set(MODEL_CHOICES))
+        
+        # If empty, try to populate manually
+        choices = []
+        try:
+            # Get all installed apps
+            installed_apps = apps.get_app_configs()
+            
+            # Basic choices that should always be available
+            choices.extend([
+                ("employee.models.Employee", "Employee"),
+                ("pms.models.EmployeeKeyResult", "Employee Key Results"),
+            ])
+            
+            # Try to add more models if apps are available
+            try:
+                from employee.models import Employee
+                from horilla_automations.methods.methods import get_related_models
+                
+                models = [Employee]
+                
+                # Check if recruitment is installed
+                if any(app.name == 'recruitment' for app in installed_apps):
+                    try:
+                        from recruitment.models import Candidate
+                        models.append(Candidate)
+                        choices.append(("recruitment.models.Candidate", "Candidate"))
+                    except ImportError:
+                        pass
+                
+                # Get related models for Employee
+                for main_model in models:
+                    try:
+                        related_models = get_related_models(main_model)
+                        for model in related_models[:10]:  # Limit to prevent too many choices
+                            path = f"{model.__module__}.{model.__name__}"
+                            choices.append((path, model.__name__))
+                    except Exception:
+                        continue
+                        
+            except Exception as e:
+                print(f"Error getting related models: {e}")
+            
+        except Exception as e:
+            print(f"Error populating MODEL_CHOICES: {e}")
+        
+        # Remove duplicates and return
+        unique_choices = []
+        seen = set()
+        for choice in choices:
+            if choice[0] not in seen:
+                unique_choices.append(choice)
+                seen.add(choice[0])
+        
+        return unique_choices
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
@@ -76,9 +140,15 @@ class AutomationForm(ModelForm):
         }
 
         # --- Field: model ---
-        self.fields["model"].choices = [("", "Select model")] + sorted(
-            set(MODEL_CHOICES)
-        )
+        # Ensure MODEL_CHOICES is populated
+        model_choices = self._get_model_choices()
+        
+        # Debug logging
+        print(f"AutomationForm: Found {len(model_choices)} model choices")
+        if len(model_choices) > 0:
+            print(f"First few choices: {model_choices[:3]}")
+        
+        self.fields["model"].choices = [("", "Select model")] + model_choices
         self.fields["model"].widget.attrs["onchange"] = "getToMail($(this))"
 
         # --- Field: mail_template ---

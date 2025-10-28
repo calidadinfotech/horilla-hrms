@@ -62,7 +62,8 @@ class HorillaAutomationConfig(AppConfig):
                 """
                 Migrations are not affected yet
                 """
-        except:
+        except Exception as e:
+            print(f"Warning: Could not populate MODEL_CHOICES during app ready: {e}")
             """
             Models not ready yet
             """

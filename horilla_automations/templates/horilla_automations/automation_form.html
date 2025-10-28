@@ -25,6 +25,11 @@
         $mainForm.find('[name="condition_html"]').val(html);
     });
 
+    // Load model choices when form is loaded
+    if (typeof loadModelChoices === 'function') {
+        loadModelChoices();
+    }
+
     $("#dynamic_field_condition").parent().removeClass("col-md-6");
     // summernote
     $("#dynamic_field_condition textarea")
