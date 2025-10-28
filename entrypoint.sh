@@ -15,5 +15,8 @@ python3 manage.py migrate
 echo "Running collectstatic..."
 python3 manage.py collectstatic --noinput
 
+echo "Compiling message files..."
+python3 manage.py compilemessages
+
 echo "Starting Gunicorn server..."
 exec gunicorn --bind 0.0.0.0:8000 --workers 3 --timeout 120 horilla.wsgi:application
