@@ -34,56 +34,63 @@ class AutomationForm(ModelForm):
     def _get_model_choices(self):
         """
         Get model choices, populating them if they're empty
+        This method ensures we always return the full MODEL_CHOICES list
         """
-        from django.apps import apps
-        
-        # Try to get the choices from the global variable first
+        # First, try to get the choices from the global variable
         if MODEL_CHOICES:
-            return list(set(MODEL_CHOICES))
+            # Remove duplicates while preserving order
+            unique_choices = []
+            seen = set()
+            for choice in MODEL_CHOICES:
+                if choice[0] not in seen:
+                    unique_choices.append(choice)
+                    seen.add(choice[0])
+            return unique_choices
         
-        # If empty, try to populate manually
+        # Fallback: If MODEL_CHOICES is empty, populate it manually
+        # This should rarely happen as apps.py should populate it on startup
+        print("Warning: MODEL_CHOICES is empty, attempting manual population")
+        
         choices = []
         try:
-            # Get all installed apps
-            installed_apps = apps.get_app_configs()
-            
-            # Basic choices that should always be available
-            choices.extend([
-                ("employee.models.Employee", "Employee"),
-                ("pms.models.EmployeeKeyResult", "Employee Key Results"),
-            ])
-            
-            # Try to add more models if apps are available
-            try:
-                from employee.models import Employee
-                from horilla_automations.methods.methods import get_related_models
-                
-                models = [Employee]
-                
-                # Check if recruitment is installed
-                if any(app.name == 'recruitment' for app in installed_apps):
-                    try:
-                        from recruitment.models import Candidate
-                        models.append(Candidate)
-                        choices.append(("recruitment.models.Candidate", "Candidate"))
-                    except ImportError:
-                        pass
-                
-                # Get related models for Employee
-                for main_model in models:
-                    try:
-                        related_models = get_related_models(main_model)
-                        for model in related_models[:10]:  # Limit to prevent too many choices
-                            path = f"{model.__module__}.{model.__name__}"
-                            choices.append((path, model.__name__))
-                    except Exception:
-                        continue
-                        
-            except Exception as e:
-                print(f"Error getting related models: {e}")
+            from base.templatetags.horillafilters import app_installed
+            from employee.models import Employee
+            from horilla_automations.methods.methods import get_related_models
+
+            # Check if recruitment is installed
+            recruitment_installed = False
+            if app_installed("recruitment"):
+                recruitment_installed = True
+
+            models = [Employee]
+            if recruitment_installed:
+                try:
+                    from recruitment.models import Candidate
+                    models.append(Candidate)
+                except ImportError:
+                    pass
+
+            # Get all related models for each main model
+            for main_model in models:
+                try:
+                    related_models = get_related_models(main_model)
+                    for model in related_models:
+                        path = f"{model.__module__}.{model.__name__}"
+                        choices.append((path, model.__name__))
+                except Exception as e:
+                    print(f"Error getting related models for {main_model}: {e}")
+                    
+            # Add the standard choices
+            choices.append(("employee.models.Employee", "Employee"))
+            choices.append(("pms.models.EmployeeKeyResult", "Employee Key Results"))
             
         except Exception as e:
-            print(f"Error populating MODEL_CHOICES: {e}")
+            print(f"Error populating MODEL_CHOICES manually: {e}")
+            # Minimal fallback
+            choices = [
+                ("employee.models.Employee", "Employee"),
+                ("pms.models.EmployeeKeyResult", "Employee Key Results"),
+            ]
         
         # Remove duplicates and return
         unique_choices = []

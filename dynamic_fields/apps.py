@@ -26,27 +26,26 @@ class DynamicFieldsConfig(AppConfig):
 
         try:
             dynamic_objects = DynamicField.objects.filter()
-            # Ensure this logic only runs when the server is started (and only once)
-            if any(cmd in sys.argv for cmd in ["runserver", "shell"]):
-                fields_to_remove = DynamicField.objects.filter(remove_column=True)
-                for df in fields_to_remove:
-                    try:
-                        call_command("delete_field", *(df.pk,))
-                    except Exception as e:
-                        logger.error(e)
-                for df in dynamic_objects:
-                    field = df.get_field()
-                    field.set_attributes_from_name(df.field_name)
-                    model = df.get_model()
-                    if not column_exists(model._meta.db_table, df.field_name):
-                        logger.info("Field does not exist, adding it.")
-                        with connection.schema_editor() as editor:
-                            editor.add_field(model, field)
-                    model.add_to_class(field.name, field)
+            # Run this logic when the app is ready (works with runserver, gunicorn, etc.)
+            fields_to_remove = DynamicField.objects.filter(remove_column=True)
+            for df in fields_to_remove:
+                try:
+                    call_command("delete_field", *(df.pk,))
+                except Exception as e:
+                    logger.error(e)
+            for df in dynamic_objects:
+                field = df.get_field()
+                field.set_attributes_from_name(df.field_name)
+                model = df.get_model()
+                if not column_exists(model._meta.db_table, df.field_name):
+                    logger.info("Field does not exist, adding it.")
+                    with connection.schema_editor() as editor:
+                        editor.add_field(model, field)
+                model.add_to_class(field.name, field)
 
-                    name = HistoricalRecords().get_history_model_name(model).lower()
-                    historical_model_ct = ContentType.objects.filter(model=name).first()
-                    if historical_model_ct:
+                name = HistoricalRecords().get_history_model_name(model).lower()
+                historical_model_ct = ContentType.objects.filter(model=name).first()
+                if historical_model_ct:
                         history_model = historical_model_ct.model_class()
                         if not hasattr(history_model, field.column):
                             history_model.add_to_class(field.column, field)

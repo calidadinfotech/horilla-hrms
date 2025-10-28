@@ -17,14 +17,8 @@ class HorillaAutomationConfig(AppConfig):
 
     def ready(self) -> None:
         ready = super().ready()
-        if not (
-            len(sys.argv) >= 2
-            and sys.argv[1] == "runserver"
-            and os.environ.get("RUN_MAIN") == "true"
-        ):
-            return ready
+        
         try:
-
             from base.templatetags.horillafilters import app_installed
             from employee.models import Employee
             from horilla_automations.methods.methods import get_related_models
@@ -37,7 +31,6 @@ class HorillaAutomationConfig(AppConfig):
             models = [Employee]
             if recruitment_installed:
                 from recruitment.models import Candidate
-
                 models.append(Candidate)
 
             main_models = models
@@ -47,18 +40,20 @@ class HorillaAutomationConfig(AppConfig):
                 for model in related_models:
                     path = f"{model.__module__}.{model.__name__}"
                     MODEL_CHOICES.append((path, model.__name__))
+            
             MODEL_CHOICES.append(("employee.models.Employee", "Employee"))
             MODEL_CHOICES.append(
                 ("pms.models.EmployeeKeyResult", "Employee Key Results")
             )
 
-            MODEL_CHOICES = list(set(MODEL_CHOICES))
+            # Remove duplicates
+            MODEL_CHOICES[:] = list(set(MODEL_CHOICES))
+            
             try:
                 from horilla_automations.signals import start_automation
-
                 start_automation()
             except Exception as e:
-                print(e)
+                print(f"Note: Could not start automation: {e}")
                 """
                 Migrations are not affected yet
                 """
