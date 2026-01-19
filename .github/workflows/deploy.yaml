@@ -48,6 +48,12 @@ jobs:
         run: |
           rsync -avz --exclude='.git' --exclude='.github' --exclude='media/' --exclude='staticfiles/' --exclude='__pycache__/' --exclude='*.pyc' -e "ssh -o StrictHostKeyChecking=no" . ${{ vars.SSH_USER }}@${{ vars.SERVER_IP }}:/srv/${{ vars.APP_NAME }}_v2/
 
+      - name: Docker login on server
+        run: |
+          ssh -o StrictHostKeyChecking=no ${{ vars.SSH_USER }}@${{ vars.SERVER_IP }} << 'ENDSSH'
+          echo "${{ secrets.DOCKER_PASSWORD }}" | docker login -u "${{ secrets.DOCKER_USERNAME }}" --password-stdin
+          ENDSSH
+
       - name: Deploy with docker-compose
         run: |
           ssh -o StrictHostKeyChecking=no ${{ vars.SSH_USER }}@${{ vars.SERVER_IP }} "cd /srv/${{ vars.APP_NAME }}_v2 && docker compose up --build -d"
