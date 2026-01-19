@@ -51,9 +51,6 @@ jobs:
       - name: Deploy with docker-compose
         run: |
           ssh -o StrictHostKeyChecking=no ${{ vars.SSH_USER }}@${{ vars.SERVER_IP }} << 'ENDSSH'
-          cd /srv/${{ vars.APP_NAME }}_v2
-          docker compose up --build -d web-production
-          docker compose exec -T web-production python manage.py migrate
-          docker compose exec -T web-production python manage.py collectstatic --noinput
+          "cd /srv/${{ vars.APP_NAME }}_v2 && docker compose up --build -d"
           ENDSSH
 
