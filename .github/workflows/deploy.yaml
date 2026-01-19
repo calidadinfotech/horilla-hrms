@@ -50,14 +50,5 @@ jobs:
 
       - name: Deploy with docker-compose
         run: |
-          ssh -o StrictHostKeyChecking=no ${{ vars.SSH_USER }}@${{ vars.SERVER_IP }} << 'ENDSSH'
-          cd /srv/${{ vars.APP_NAME }}_v2
-          docker compose --profile production pull
-          docker compose --profile production up --build -d web-production
-          docker compose --profile production exec -T web-production python manage.py migrate
-          docker compose --profile production exec -T web-production python manage.py collectstatic --noinput
-          ENDSSH
+          ssh -o StrictHostKeyChecking=no ${{ vars.SSH_USER }}@${{ vars.SERVER_IP }} "cd /srv/${{ vars.APP_NAME }}_v2 && docker compose up --build -d"
 
-      - name: Verify deployment
-        run: |
-          ssh -o StrictHostKeyChecking=no ${{ vars.SSH_USER }}@${{ vars.SERVER_IP }} "docker ps | grep web-production"
