@@ -50,7 +50,5 @@ jobs:
 
       - name: Deploy with docker-compose
         run: |
-          ssh -o StrictHostKeyChecking=no ${{ vars.SSH_USER }}@${{ vars.SERVER_IP }} << 'ENDSSH'
-          "cd /srv/${{ vars.APP_NAME }}_v2 && docker compose up --build -d"
-          ENDSSH
+          ssh -o StrictHostKeyChecking=no ${{ vars.SSH_USER }}@${{ vars.SERVER_IP }} "cd /srv/${{ vars.APP_NAME }}_v2 && docker compose up --build -d"
 
