@@ -21,10 +21,9 @@ services:
       - DB_PASSWORD=${DB_PASSWORD}
       - DB_HOST=${DB_HOST}
       - DB_PORT=${DB_PORT}
-      - REDIS_URL=${REDIS_URL:-redis://redis:6379/0}
+      - REDIS_URL=redis://redis:6379/0
     depends_on:
       - redis
-    profiles: ["dev"]
     restart: unless-stopped
 
   redis:
@@ -34,7 +33,6 @@ services:
       - redis_data:/data
     ports:
       - "6379:6379"
-    profiles: ["dev"]
     restart: unless-stopped
 
   web-production:
@@ -53,13 +51,14 @@ services:
       - DB_PASSWORD=${DB_PASSWORD}
       - DB_HOST=${DB_HOST}
       - DB_PORT=${DB_PORT}
-      - REDIS_URL=${REDIS_URL}
+      - REDIS_URL=redis://redis:6379/0
     volumes:
       - staticfiles:/app/staticfiles
       - media:/app/media
     ports:
       - "8101:8000"
-    profiles: ["production"]
+    depends_on:
+      - redis
     restart: always
 
 volumes:
