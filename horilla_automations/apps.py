@@ -17,11 +17,11 @@ class HorillaAutomationConfig(AppConfig):
 
     def ready(self) -> None:
         ready = super().ready()
-        if not (
-            len(sys.argv) >= 2
-            and sys.argv[1] == "runserver"
-            and os.environ.get("RUN_MAIN") == "true"
-        ):
+        is_runserver_main = (
+            "runserver" in sys.argv and os.environ.get("RUN_MAIN") == "true"
+        )
+        is_gunicorn = "gunicorn" in " ".join(sys.argv).lower()
+        if not (is_runserver_main or is_gunicorn):
             return ready
         try:
 
@@ -52,7 +52,7 @@ class HorillaAutomationConfig(AppConfig):
                 ("pms.models.EmployeeKeyResult", "Employee Key Results")
             )
 
-            MODEL_CHOICES = list(set(MODEL_CHOICES))
+            MODEL_CHOICES[:] = list(set(MODEL_CHOICES))
             try:
                 from horilla_automations.signals import start_automation
 
