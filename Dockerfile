@@ -50,8 +50,8 @@ RUN apt-get update \
         libxml2 \
         libxslt1.1 \
         libffi8 \
+        gettext \
         curl \
-        netcat-openbsd \
     && rm -rf /var/lib/apt/lists/* \
     && apt-get clean
 
@@ -66,13 +66,15 @@ WORKDIR /app
 # Copy application code
 COPY --chown=appuser:appuser . .
 
-# Copy entrypoint script
-COPY --chown=appuser:appuser docker/entrypoint.sh /entrypoint.sh
-RUN chmod +x /entrypoint.sh
-
 # Create necessary directories and set permissions
 RUN mkdir -p staticfiles media \
     && chown -R appuser:appuser /app
+
+# Execute management commands at build time so container startup
+# CMD remains Gunicorn-only.
+RUN python manage.py migrate --noinput \
+    && python manage.py compilemessages \
+    && python manage.py collectstatic --noinput
 
 USER appuser
 
@@ -81,5 +83,4 @@ EXPOSE 8000
 HEALTHCHECK --interval=30s --timeout=30s --start-period=5s --retries=3 \
     CMD curl -f http://localhost:8000/health/ || exit 1
 
-ENTRYPOINT ["/entrypoint.sh"]
 CMD ["gunicorn", "horilla.wsgi:application", "--config", "docker/gunicorn.conf.py"]

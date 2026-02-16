@@ -337,7 +337,9 @@ class LeaveType(HorillaModel):
 
     def save(self, *args, **kwargs):
         request = getattr(horilla_middlewares._thread_locals, "request", None)
-        selected_company = request.session.get("selected_company")
+        if request and hasattr(request, "session"):
+            selected_company = request.session.get("selected_company")
+        
         if (
             not self.id
             and not self.company_id
